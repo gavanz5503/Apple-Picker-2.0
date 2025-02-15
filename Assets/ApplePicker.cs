@@ -2,50 +2,86 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using TMPro;
 
 public class ApplePicker : MonoBehaviour
 {
     [Header("Inscribed")]
     public GameObject basketPrefab;
-    public int numBaskets = 3;
+    public int numBaskets = 4;
     public float basketBottomY = -14f;
     public float basketSpacingY = 2f;
     public List<GameObject> basketList;
 
-    // Start is called once before the first execution of Update after the MonoBehaviour is created
+    [Header("UI Elements")]
+    public TextMeshProUGUI roundText;
+    public GameObject restartButton;
+
+    private int currentRound = 1;
+
     void Start()
     {
         basketList = new List<GameObject>();
+
         for (int i = 0; i < numBaskets; i++)
         {
-            GameObject tBasketG0 = Instantiate<GameObject>(basketPrefab);
+            GameObject tBasketGO = Instantiate<GameObject>(basketPrefab);
             Vector3 pos = Vector3.zero;
             pos.y = basketBottomY + (basketSpacingY * i);
-            tBasketG0.transform.position = pos;
-            basketList.Add(tBasketG0);
+            tBasketGO.transform.position = pos;
+            basketList.Add(tBasketGO);
+        }
+
+        UpdateRoundText();
+        restartButton.SetActive(false);
+    }
+
+    public void AppleMissed()
+    {
+        // Destroy all falling apples
+        GameObject[] appleArray = GameObject.FindGameObjectsWithTag("Apple");
+        foreach (GameObject tempGO in appleArray)
+        {
+            Destroy(tempGO);
+        }
+
+        // Destroy all falling branches
+        GameObject[] branchArray = GameObject.FindGameObjectsWithTag("Branch");
+        foreach (GameObject tempGO in branchArray)
+        {
+            Destroy(tempGO);
+        }
+
+        // Remove a basket
+        if (basketList.Count > 0)
+        {
+            int basketIndex = basketList.Count - 1;
+            GameObject basketGO = basketList[basketIndex];
+            basketList.RemoveAt(basketIndex);
+            Destroy(basketGO);
+
+            currentRound++;
+            UpdateRoundText();
+        }
+
+        // Check if there are no baskets left
+        if (basketList.Count == 0)
+        {
+            roundText.text = "Game Over";
+            restartButton.SetActive(true);
+            Time.timeScale = 0f; // Stops game movement
         }
     }
 
-        public void AppleMissed()
-    {
-        // Destroy all of the falling Apples
-        GameObject[] appleArray = GameObject.FindGameObjectsWithTag("Apple");
-        foreach (GameObject tempGO in appleArray) {
-            Destroy(tempGO);
-        }
-        // Destroy one of the Baskets
-        // Get the index of the last Basket in basketList
-        int basketIndex = basketList.Count - 1;
-        // Get a reference to that Basket GameObject
-        GameObject basketGO = basketList[basketIndex];
-        // Remove the Basket from the list and destroy the GameObject
-        basketList.RemoveAt(basketIndex);
-        Destroy(basketGO);
 
-        // If there are no Baskets left, restart the game
-        if (basketList.Count == 0)
-        {
-            SceneManager.LoadScene("_Scene_0");
-        }
+    void UpdateRoundText()
+    {
+        roundText.text = "Round " + currentRound;
+    }
+
+    public void RestartGame()
+    {
+        Time.timeScale = 1f;
+        SceneManager.LoadScene(SceneManager.GetActiveScene().name);
     }
 }

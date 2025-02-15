@@ -1,34 +1,52 @@
-using System.Collections;
+﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using TMPro;
 
 public class Basket : MonoBehaviour
 {
-    public ScoreCounter scoreCounter;
-    // Start is called once before the first execution of Update after the MonoBehaviour is created
+    [SerializeField] private TextMeshProUGUI roundText; // Assigned in Inspector
+    [SerializeField] private GameObject restartButton;  // Assigned in Inspector
+    [SerializeField] private ScoreCounter scoreCounter; // Assigned in Inspector
+
+    public static int round = 1;
+
     void Start()
     {
-        // Find a GameObject named ScoreCounter in the Scene Hierarchy
-        GameObject scoreGO = GameObject.Find("ScoreCounter");
-        // Get the ScoreCounter (Script) component of scoreGO
-        scoreCounter = scoreGO.GetComponent<ScoreCounter>();
+        // Find and assign ScoreCounter if not set in Inspector
+        if (scoreCounter == null)
+        {
+            GameObject scoreGO = GameObject.Find("ScoreCounter");
+            if (scoreGO != null)
+            {
+                scoreCounter = scoreGO.GetComponent<ScoreCounter>();
+            }
+            else
+            {
+               // Debug.LogError("⚠️ ScoreCounter GameObject not found! Assign it in the Inspector.");
+            }
+        }
+
+        // Ensure roundText is assigned
+        if (roundText == null)
+        {
+            // Debug.LogError("⚠️ roundText is NULL! Assign it in the Inspector.");
+        }
+
+        // Ensure restartButton is assigned
+        if (restartButton == null)
+        {
+            // Debug.LogError("⚠️ restartButton is NULL! Assign it in the Inspector.");
+        }
+
+        UpdateRoundText();
     }
 
-    // Update is called once per frame
     void Update()
     {
-        // Get the current screen position of the mouse from Input
         Vector3 mousePos2D = Input.mousePosition;
-
-        // The Camera's z position sets how far to push the mouse into 3D
-        // If this line causes a NullReferenceException, select the Main Camera
-        // in the Hierarchy and set its tag to MainCamera in the Inspector.
         mousePos2D.z = -Camera.main.transform.position.z;
-
-        // Convert the point from 2D screen space into 3D game world space
         Vector3 mousePos3D = Camera.main.ScreenToWorldPoint(mousePos2D);
-
-        // Move the x position of this Basket to the x position of the Mouse
         Vector3 pos = this.transform.position;
         pos.x = mousePos3D.x;
         this.transform.position = pos;
@@ -36,14 +54,67 @@ public class Basket : MonoBehaviour
 
     void OnCollisionEnter(Collision coll)
     {
-        // Find out what hit this basket
         GameObject collidedWith = coll.gameObject;
+
         if (collidedWith.CompareTag("Apple"))
         {
             Destroy(collidedWith);
-            // Increase the score
-            scoreCounter.score += 100;
-            HighScore.TRY_SET_HIGH_SCORE(scoreCounter.score);
+            if (scoreCounter != null)
+            {
+                scoreCounter.score += 100;
+                HighScore.TRY_SET_HIGH_SCORE(scoreCounter.score);
+            }
+            else
+            {
+               // Debug.LogError("⚠️ ScoreCounter is NULL! Cannot update score.");
+            }
         }
+        else if (collidedWith.CompareTag("Branch")) // Branch hitting the Basket
+        {
+            // Debug.Log("🚨 Branch hit the Basket! Removing a basket...");
+            Destroy(collidedWith);
+
+            // Call ApplePicker's AppleMissed() to remove a Basket
+            ApplePicker applePicker = Camera.main.GetComponent<ApplePicker>();
+            if (applePicker != null)
+            {
+                applePicker.AppleMissed();
+            }
+            else
+            {
+               // Debug.LogError("⚠️ ApplePicker script not found! Cannot remove a basket.");
+            }
+        }
+    }
+
+    public void UpdateRoundText()
+    {
+        if (roundText != null)
+        {
+            roundText.text = "Round " + round;
+        }
+        else
+        {
+           // Debug.LogError("⚠️ roundText is NULL! Cannot update UI.");
+        }
+    }
+
+    public void IncrementRound()
+    {
+        round++;
+        UpdateRoundText();
+    }
+
+    void GameOver()
+    {
+        if (roundText != null)
+        {
+            roundText.text = "Game Over";  // Show "Game Over"
+        }
+        if (restartButton != null)
+        {
+            restartButton.SetActive(true);  // Show restart button
+        }
+        Time.timeScale = 0f;  // Stop game movement
     }
 }
